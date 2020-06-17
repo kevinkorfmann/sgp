@@ -41,4 +41,4 @@ For HaplotypeCaller within specific interval use --interval to specify genomic r
 ![](sgp.png)
 
 ## Acknowledgement
-Thanks to Gustavo A. Silva-Arias (gsilvaarias) for original shell scripts and general advice.
+Thanks to Gustavo A. Silva-Arias (https://github.com/gsilvaarias) for original shell scripts and general advice.
