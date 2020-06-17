@@ -1,0 +1,13 @@
+Metadata-Version: 2.1
+Name: simple-genomic-processor
+Version: 1.0
+Summary: Genomic processing pipeline: From SRA to VCF
+Home-page: UNKNOWN
+Author: Kevin Korfmann
+Author-email: kevin.korfmann@protonmail.com
+License: UNKNOWN
+Description: UNKNOWN
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown

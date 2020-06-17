@@ -1,0 +1,11 @@
+README.md
+setup.py
+simple_genomic_processor/__init__.py
+simple_genomic_processor/main.py
+simple_genomic_processor/simple_genomic_pipeline.py
+simple_genomic_processor/test.py
+simple_genomic_processor.egg-info/PKG-INFO
+simple_genomic_processor.egg-info/SOURCES.txt
+simple_genomic_processor.egg-info/dependency_links.txt
+simple_genomic_processor.egg-info/requires.txt
+simple_genomic_processor.egg-info/top_level.txt
