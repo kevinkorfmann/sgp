@@ -208,7 +208,7 @@ class HaplotypeCaller(Step):
         ]
 
         if interval:
-            L = interval
+            L = "-L " + interval
         else:
             L = ""
 
