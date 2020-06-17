@@ -26,9 +26,12 @@ For gvcf and vcf use the following command.
 ```bash
 sgp --srr ERR3997272 --reference_genome /data/home/users/k.korfmann/reference/p_vivax_ref.fasta --remove_genomic_from_gvcf
 ```
+For verbose output of pipelined software use --verbose.    
+```bash
+sgp --srr ERR3997272 --reference_genome /data/home/users/k.korfmann/reference/p_vivax_ref.fasta --verbose 
+```
 
-For verbose output of pipelined software use --verbose
-For HaplotypeCaller within specific interval use --interval to specify genomic region
+For HaplotypeCaller within specific interval use --interval to specify genomic region.
 
 
 
