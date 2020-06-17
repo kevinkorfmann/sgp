@@ -31,7 +31,6 @@ class Pipeline():
         
     def run(self):
         print('\033[1mRunning \'Simple Genomic Processor\' with parameters: \033[0;0m')
-        print("") 
         for step in self.steps:
             print("\t>>>", end= " ")
             with timing():
@@ -48,6 +47,7 @@ class Step():
             self.data_directory = Path(kwargs['data_directory'])
             self.sample_name = Path(kwargs['sample_name'])
             self.reference_genome = Path(kwargs['reference_genome'])
+            self.verbose = kwargs['verbose']
     
     
     def __call__(self, stdout=False, stderr=False):
@@ -55,6 +55,11 @@ class Step():
                              shell=True,
                              stdout=subprocess.PIPE,
                              stderr=subprocess.STDOUT)
+
+        if self.verbose:
+            stdout = True
+            stderr = True
+
         if stdout:
             try:
                 for line in p.stdout.readlines():
@@ -192,13 +197,21 @@ class FixMateInformation(Step):
         self.command = " ".join(self.command)
 
 class HaplotypeCaller(Step):
-    def __init__(self, suffix_input=".fixm.bam", suffix_output= ".g.vcf.gz", java_memory="-Xmx15g",**kwargs):
+    def __init__(self, suffix_input=".fixm.bam", suffix_output= ".g.vcf.gz", java_memory="-Xmx15g",interval="",remove_genomic_from_gvcf=False,**kwargs):
         super().__init__(**kwargs)
+        self.remove_genomic_from_gvcf=remove_genomic_from_gvcf,
+        self.interval=interval
         self.command = [
             "samtools index",
             str(self.data_directory/self.sample_name) + suffix_input,
             ";"
         ]
+
+        if interval:
+            L = interval
+        else:
+            L = ""
+
         self.command += ["gatk",
                         "--java-options",
                         java_memory,
@@ -210,17 +223,36 @@ class HaplotypeCaller(Step):
                         "--output",
                         str(self.data_directory/self.sample_name) + suffix_output,
                         "--emit-ref-confidence GVCF",
+                        L,
                         ">>",
                         str(self.data_directory/self.sample_name) + "_map_call.log.txt"
                         ]
+
+        if remove_genomic_from_gvcf:
+            self.command += ["; gatk",
+                    "--java-options",
+                    java_memory,
+                    "GenotypeGVCFs",
+                    "-R",
+                    str(self.reference_genome),
+                    "-V",
+                    str(self.data_directory/self.sample_name) + suffix_output,
+                    "-O", 
+                    str(self.data_directory/self.sample_name) + ".vcf.gz"
+                ]
         self.command = " ".join(self.command)
 
+#class ENA_Downloader():
+#   def __init__(self, **kwargs):
+
+
 class SRR_Downloader():
-    def __init__(self, **kwargs):
+    def __init__(self, delete_download_directory=True,**kwargs):
         self.srr = kwargs['srr']
         self.download_directory = kwargs['download_directory']
         self.data_directory = kwargs['data_directory']
         self.command = "pysradb"
+        self.delete_download_directory = delete_download_directory
     
     def __call__(self):
         
@@ -230,7 +262,9 @@ class SRR_Downloader():
         
         # redirecting stdout for a second
         old_stdout = sys.stdout
+        old_stderr = sys.stderr
         sys.stdout = open(os.devnull, "w")
+        sys.stderr = open(os.devnull, "w")
         try:
             db.download(df=df, skip_confirmation=True, out_dir=str(download_directory), protocol="ftp")
         #finally:
@@ -242,13 +276,16 @@ class SRR_Downloader():
                 for file in files:
                     srr_path = os.path.join(currentpath, file)
             #print("Unpacking...")
-            cmd_unpack = "fastq-dump "+ srr_path  +" --outdir " + self.data_directory + " --gzip --split-files --skip-technical --read-filter pass --clip > /dev/null" 
+            cmd_unpack = "fastq-dump "+ srr_path  +" --outdir " + self.data_directory + " --gzip --split-files --skip-technical --readids --read-filter pass --clip > /dev/null" 
             #cmd_unpack = "fasterq-dump -O " + self.data_directory + " --split-files " + srr_path
             #print(cmd_unpack)
-
+            if self.delete_download_directory:
+                os.system("rm -rf " + str(self.download_directory))
             os.system(cmd_unpack)
         finally:
             sys.stdout.close()
             sys.stdout = old_stdout
+            sys.stderr.close()
+            sys.stderr = old_stderr
             # reverting stdout
 

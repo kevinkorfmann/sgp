@@ -1,0 +1,189 @@
+#!/usr/bin/env python
+
+print(""" 
+  A_A
+ (-.-)    ~+ Simple Genomic Processor, meow +~
+  |-|
+ /   \
+|     |   __
+|  || |  |  \__
+ \_||_/_/
+
+""")
+
+
+from simple_genomic_pipeline import *
+from clint.textui import puts, colored, indent
+import os
+import argparse
+from time import sleep
+import distutils.spawn
+def installed(name):
+  return distutils.spawn.find_executable(name) is not None
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+dependencies = ["fastq-dump", "samtools", "bwa", "picard", "gatk"]
+
+
+parser = argparse.ArgumentParser(description='Simple genomic processor arguments.')
+parser.add_argument('--srr',  required=True)
+parser.add_argument('--reference_genome', required=True)
+parser.add_argument('--download_directory')
+parser.add_argument('--data_directory')
+parser.add_argument('--sample_name')
+
+parser.add_argument('--suffix_fastq_1')
+parser.add_argument('--suffix_fastq_2')
+parser.add_argument('--bwa_threads')
+parser.add_argument('--interval')
+parser.add_argument('--remove_genomic_from_gvcf', action='store_true')
+parser.add_argument('--delete_download_directory', action='store_true')
+parser.add_argument('--verbose', action="store_true")
+
+args = parser.parse_args()
+
+print("")
+print('\033[1mCommand line parameters: \033[0;0m')
+
+for k,v in zip(vars(args).keys(), vars(args).values()):
+    print("\t>>>", end= " ")
+    print(colored.blue(k) + " : " + str(v))
+
+print("")
+
+
+delete_download_directory = args.delete_download_directory
+verbose = args.verbose
+remove_genomic_from_gvcf = args.remove_genomic_from_gvcf
+
+if args.interval is None:
+    print(f"{bcolors.OKBLUE} Parameter --interval not specified. {bcolors.ENDC}")
+    print(f"{bcolors.OKBLUE} Setting it to \'whole genome snp calling\' {bcolors.ENDC}")
+    print("")
+    sleep(0.5)
+    interval = args.interval
+
+
+if args.download_directory is None:
+    print(f"{bcolors.OKBLUE} Parameter --download_directory not specified. {bcolors.ENDC}")
+    print(f"{bcolors.OKBLUE} Setting it to \'./pysradb_downloads\' {bcolors.ENDC}")
+    print("")
+    sleep(0.5)
+    args.download_directory = "./pysradb_downloads"
+    
+if args.data_directory is None:
+    print(f"{bcolors.OKBLUE} Parameter --data_directory not specified. {bcolors.ENDC}")
+    print(f"{bcolors.OKBLUE} Setting it to \'./\' {bcolors.ENDC}")
+    print("")
+    sleep(0.5)
+    args.data_directory = "./"
+
+if args.sample_name is None:
+    args.sample_name = args.srr
+
+if args.suffix_fastq_1 is not None:
+    suffix_fastq_1 = args.suffix_fastq_1
+else:
+    print(f"{bcolors.OKBLUE} Parameter --suffix_fastq_* not specified. {bcolors.ENDC}")
+    print(f"{bcolors.OKBLUE} Setting them to \'_pass_[12].fastq.gz\' {bcolors.ENDC}")
+    print("")
+    sleep(0.5)
+    suffix_fastq_1 = "_pass_1.fastq.gz"
+
+if args.suffix_fastq_2 is not None:
+    suffix_fastq_2 = args.suffix_fastq_2
+else:
+    print(f"{bcolors.OKBLUE} Parameter --suffix_fastq_* not specified. {bcolors.ENDC}")
+    print(f"{bcolors.OKBLUE} Setting them to \'_pass_[12].fastq.gz\' {bcolors.ENDC}")
+    print("")
+    sleep(0.5)
+    suffix_fastq_2 = "_pass_2.fastq.gz"
+
+if args.bwa_threads is None:
+    bwa_threads = 1
+    print(f"{bcolors.OKBLUE} Parameter --bwa_threads not specified. {bcolors.ENDC}")
+    print(f"{bcolors.OKBLUE} Setting it to \'1\' {bcolors.ENDC}")
+    print("")
+    sleep(0.5)
+
+else:
+    bwa_threads = args.bwa_threads
+
+print("Make sure all necessary dependencies are accessible in your $PATH")
+print("Dependencies: ")
+print("fastq-dump bwa samtools picard gatk")
+sleep(0.5)
+
+not_installed = []
+for depend in dependencies:
+
+    found = installed(depend)
+    if found:
+        print(f"{bcolors.OKGREEN}Dependency {depend} found.{bcolors.ENDC}")
+    sleep(0.2)
+    if not found:
+        print(f"{bcolors.WARNING}Dependency {depend} is either not installed or not in $PATH.{bcolors.ENDC}")
+        not_installed.append(depend)
+
+print("")
+
+if len(not_installed) is not 0:
+    print("Exiting program.")
+    sys.exit(0)
+
+
+
+kwargs = {
+    "srr"                 :   args.srr,
+    "data_directory"      :   args.data_directory,
+    "sample_name"         :   args.sample_name,
+    "reference_genome"    :   args.reference_genome,
+    "download_directory"  :   args.download_directory,
+    "verbose"             :   args.verbose
+}
+
+
+
+"""
+kwargs = {
+    "srr"                 :   "ERR3997272",
+    "download_directory"  :   "/data/home/users/k.korfmann/tests/pysradb_downloads",
+    "data_directory"      :   "/data/home/users/k.korfmann/tests",
+    "sample_name"         :   "ERR3997272",
+    "reference_genome"    :   "/data/home/users/k.korfmann/reference/p_vivax_ref.fasta"
+}
+"""
+
+
+def srr2vcf(suffix_fastq_1="_pass_1.fastq.gz", suffix_fastq_2="_pass_2.fastq.gz",
+        bwa_threads=1,interval="",remove_genomic_from_gvcf=False, delete_download_directory=False, **kwargs):
+    sgp = Pipeline(
+        [
+            SRR_Downloader(delete_download_directory=delete_download_directory, **kwargs),
+            StaticFileGenerator(**kwargs),
+            BWA_Mapper(threads=bwa_threads, 
+                suffix_fastq_1 = suffix_fastq_1,
+                suffix_fastq_2 = suffix_fastq_1, **kwargs),
+            MarkDuplicates(**kwargs),
+            AddOrReplaceReadGroups(**kwargs),
+            FixMateInformation(**kwargs),
+            HaplotypeCaller(remove_genomic_from_gvcf=remove_genomic_from_gvcf,**kwargs)
+        ]
+    ).run()
+
+srr2vcf(suffix_fastq_1=suffix_fastq_1,
+        suffix_fastq_2=suffix_fastq_2,
+        bwa_threads = bwa_threads,
+        interval = interval,
+        remove_genomic_from_gvcf=remove_genomic_from_gvcf,
+        **kwargs)
+

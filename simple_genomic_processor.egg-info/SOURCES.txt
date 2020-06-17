@@ -1,7 +1,6 @@
 README.md
 setup.py
 simple_genomic_processor/__init__.py
-simple_genomic_processor/main.py
 simple_genomic_processor/simple_genomic_pipeline.py
 simple_genomic_processor/test.py
 simple_genomic_processor.egg-info/PKG-INFO
