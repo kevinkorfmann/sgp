@@ -1,5 +1,5 @@
 # Simple Genomic Processor: 
-## From SRR identifier to genomic VCF file
+# From SRR identifier to genomic VCF file
 
 ## Installation:
 
