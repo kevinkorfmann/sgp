@@ -2,9 +2,9 @@
 
 ## Installation:
 
-git clone https://github.com/kevinkorfmann/sgp.git
-cd sgp
-pip install .
+git clone https://github.com/kevinkorfmann/sgp.git    
+cd sgp     
+pip install .     
 
 ## Usage:
 
